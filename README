@@ -1,0 +1,4 @@
+Make sure to grab the HoTT library [1] and the HitTactics file [2].
+
+[1]: https://github.com/HoTT/HoTT
+[2]: https://github.com/nmvdw/HITs-Examples/tree/master/prelude

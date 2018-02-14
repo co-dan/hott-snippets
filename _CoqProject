@@ -1,0 +1,11 @@
+-R . "" COQC = hoqc COQDEP = hoqdep
+-R ../cow/prelude ""
+Circ.v
+Interval.v
+monoid.v
+Ab.v
+Hedberg.v
+J.v
+K.v
+Trunc.v
+vK/WedgeSum.v

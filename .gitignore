@@ -1,0 +1,14 @@
+*.vo
+*.vio
+*.v.d
+*.glob
+*.cache
+*.aux
+\#*\#
+.\#*
+*~
+*.bak
+build-dep/
+Makefile.coq
+Makefile.coq.conf
+*.crashcoqide
