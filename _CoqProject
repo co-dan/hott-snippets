@@ -1,5 +1,5 @@
 -R . "" COQC = hoqc COQDEP = hoqdep
--R ../cow/prelude ""
+HitTactics.v
 Circ.v
 Interval.v
 monoid.v
