@@ -1,15 +1,19 @@
 From HoTT Require Import HoTT HIT.Truncations.
 
+(** If ||Σ n, f n = 0||, then Σ n, f n = 0 *)
+(** This method is similar to the "ConstructiveEpsilon" in Coq, adapted to HoTT/hProp. It can be further generalized to arbitrary decidable hProps. *)
 Section contents.
   Context `{Univalence}.
   Variable f : nat -> nat.
 
   Hypothesis root : Trunc -1 (sig (fun n => f n = 0)).
-  
+
   Inductive rootD : nat -> Type :=
   | is_root : forall {n}, f n = 0 -> rootD n
   | root_step : forall {n}, f n <> 0 -> rootD (S n) -> rootD n.
 
+  (* Here we use the fact that 'nat' is an hset, hence
+     ||f n = 0|| = (f n = 0) *)
   Instance rootD_hprop n : IsHProp (rootD n).
   Proof.
     apply hprop_allpath.
@@ -55,6 +59,6 @@ Section contents.
     apply (downclosure n).
     by apply is_root.
   Defined.
-  
+
 End contents.
 
