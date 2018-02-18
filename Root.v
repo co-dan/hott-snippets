@@ -6,8 +6,6 @@ Section contents.
   Context `{Univalence}.
   Variable f : nat -> nat.
 
-  Hypothesis root : Trunc -1 (sig (fun n => f n = 0)).
-
   Inductive rootD : nat -> Type :=
   | is_root : forall {n}, f n = 0 -> rootD n
   | root_step : forall {n}, f n <> 0 -> rootD (S n) -> rootD n.
@@ -51,8 +49,10 @@ Section contents.
       + by apply root_step.
   Defined.
 
-  Theorem witness : sig (fun n => f n = 0).
+  Theorem witness :
+    Trunc -1 (sig (fun n => f n = 0)) -> sig (fun n => f n = 0).
   Proof.
+    intros root.
     apply (search 0).
     strip_truncations.
     destruct root as [n Hroot].
