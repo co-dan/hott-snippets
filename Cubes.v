@@ -5,13 +5,13 @@ Require Import Circ HitTactics.
 Inductive PathOver {A : Type} (C : A -> Type) {a1 : A} :
   forall {a2 : A}, (a1 = a2) -> C a1 -> C a2 -> Type :=
 | pid : forall {c : C a1}, PathOver C idpath c c.
-Arguments pid _ _ _ _.
+Arguments pid {_ _ _ _}.
 
 Instance PathOver_reflexive {A : Type} (C : A -> Type) a : Reflexive (PathOver C (idpath a)).
 Proof. intros c. apply pid. Defined.
 
 Definition apdo {A : Type} {C : A -> Type} (f : forall a, C a) {a b : A} (p : a = b) : PathOver C p (f a) (f b) :=
-  match p with idpath => pid _ end.
+  match p with idpath => pid end.
 
 Lemma pathover_transport {A : Type} {B : A -> Type} {a1 a2 : A} {p : a1 = a2} {b1 : B a1} {b2 : B a2} (q : PathOver B p b1 b2) : transport B p b1 = b2.
 Proof. induction q. reflexivity. Defined.
@@ -68,6 +68,24 @@ Proof.
   apply pathover_path. apply path_forall. intro x.
   specialize (β x x (@pid _ B a1 x)).
   apply path_pathover. exact β.
+Defined.
+
+Definition PathOver_const_out {A P : Type} {a b : A} {p : a = b} {x y : P} :
+  PathOver (fun (_ : A) => P) p x y -> x = y :=
+  fun x => match x with pid _ => idpath end.
+
+Definition PathOver_const_in {A P : Type} {a b : A} {p : a = b} {x y : P} :
+  x = y -> PathOver (fun (_ : A) => P) p x y :=
+  fun q => match p,q with idpath,idpath => pid end.
+
+Lemma PathOver_const {A P : Type} (x y : P) {a b : A} (p : a = b) :
+  x = y <~> PathOver (fun (_ : A) => P) p x y.
+Proof.
+  simple refine (BuildEquiv _ _ _ _).
+  - apply PathOver_const_in.
+  - apply isequiv_biinv. split; exists PathOver_const_out.
+    + intros q. induction p,q. reflexivity.
+    + intros q. induction q. reflexivity.
 Defined.
 
 (** * Square *)
@@ -134,6 +152,50 @@ Proof. intros p. apply hrefl. Defined.
 Instance reflexive_vertical {A : Type} {a b : A} : Reflexive (fun (p q : a = b) => Square 1 p q 1).
 Proof. intros p. apply vrefl. Defined.
 
+Lemma Square_ind_vert (A : Type) (a b : A) (p : a = b)
+  (P : forall q, Square 1 p q 1 -> Type) (HP : P p vrefl) : forall q x, P q x.
+Proof. Abort. (* TODO *)
+  
+(** PathOver in a path space is a square *)
+(** 
+
+f a1----- q1 ----g a1         Σa. fa = ga
+  |               |
+  |               |               |
+ap f p          ap g p            |
+  |               |               |
+  |               |               v
+f a2----- q2 ----g a2             A
+
+*)
+Definition PathOver_paths_out {A B : Type} {f g : A -> B}
+      {a1 a2 : A} {p : a1 = a2}
+      {q1 : f a1 = g a1}
+      {q2 : f a2 = g a2} :
+  PathOver (fun a => f a = g a) p q1 q2 ->
+  Square (ap f p) q1 q2 (ap g p).
+Proof. induction 1. apply vrefl. Defined.
+Definition PathOver_paths_in {A B : Type} {f g : A -> B}
+      {a1 a2 : A} {p : a1 = a2}
+      {q1 : f a1 = g a1}
+      {q2 : f a2 = g a2} :
+  Square (ap f p) q1 q2 (ap g p) ->
+  PathOver (fun a => f a = g a) p q1 q2.
+Proof.
+  induction p. simpl. Abort.
+  (* TODO: apply Square_ind_vert. *)
+(* Lemma PathOver_paths {A B : Type} {f g : A -> B} *)
+(*       {a1 a2 : A} {p : a1 = a2} *)
+(*       {α : f a1 = g a1} *)
+(*       {β : f a2 = g a2} : *)
+(*   Square (ap f p) α β (ap g p) <~> *)
+(*   PathOver (fun a => f a = g a) p α β. *)
+(* Proof. *)
+(*   simple refine (BuildEquiv _ _ _ _). *)
+(*   - apply PathOver_paths_in. *)
+(*   - apply isequiv_biinv. split; exists PathOver_paths_out. *)
+
+
 (** Image of a aquare under f *)
 Definition ap_square {A B : Type} (f : A -> B) {a00 a01 a10 a11 : A}
   {l : a00 = a01} {t : a00 = a10} {b : a01 = a11} {r : a10 = a11} :
@@ -143,7 +205,7 @@ Proof.
 Defined.
 
 (** Product of two squares *)
-Definition prod_square {A B : Type}
+Definition square_prod {A B : Type}
   {a00 a01 a10 a11 : A}
   {l : a00 = a01} {t : a00 = a10} {b : a01 = a11} {r : a10 = a11}
   (s : Square l t b r)
@@ -270,7 +332,7 @@ Proof.
 Defined.
 
 (** Kan fillings *)
-Definition fill_horn {A : Type} {a00 a01 a10 a11 : A}
+Definition fill_sq {A : Type} {a00 a01 a10 a11 : A}
   (l : a00 = a01) (t : a00 = a10) (b : a01 = a11) :
   exists (r : a10 = a11), Square l t b r.
 Proof.
@@ -278,6 +340,109 @@ Proof.
   apply square_disc.
   hott_simpl.
 Defined.
+
+(** Inverses and composition from Kan filling *)
+Definition inv_filler {A : Type} {a b : A} (p : a = b) : b = a
+  := (fill_sq 1 p 1).1.
+Definition comp_filler {A : Type} {a b c : A} (p : a = b) (q : b = c) : a = c
+  := (fill_sq p 1 q).1.
+
+(** Square over a square *)
+Inductive SquareOver {A : Type} (B : A -> Type)
+  {a00 : A} {b00 : B a00} : forall {a01 a10 a11 : A}
+  {l : a00 = a01} {t : a00 = a10} {b : a01 = a11} {r : a10 = a11}
+  (s : Square l t b r)
+  {b01 b10 b11}
+  (bl : PathOver B l b00 b01)
+  (bt : PathOver B t b00 b10)
+  (bb : PathOver B b b01 b11)
+  (br : PathOver B r b10 b11), Type :=
+soid : SquareOver B sid pid pid pid pid.
+
+Definition SquareOver_const_out {A P : Type}
+  {a00 a01 a10 a11 : A}
+  {l : a00 = a01} {t : a00 = a10} {b : a01 = a11} {r : a10 = a11}
+  {s : Square l t b r}
+  {p00 p01 p10 p11 : P}
+  {ppl : PathOver (fun _ => P) l p00 p01}
+  {ppt : PathOver (fun _ => P) t p00 p10}
+  {ppb : PathOver (fun _ => P) b p01 p11}
+  {ppr : PathOver (fun _ => P) r p10 p11} :
+  SquareOver (fun (_ : A) => P) s ppl ppt ppb ppr ->
+  Square
+    (PathOver_const_out ppl)
+    (PathOver_const_out ppt)
+    (PathOver_const_out ppb)
+    (PathOver_const_out ppr).
+Proof. induction 1. reflexivity. Defined.
+
+Definition SquareOver_const_in {A P : Type}
+  {a00 a01 a10 a11 : A}
+  {l : a00 = a01} {t : a00 = a10} {b : a01 = a11} {r : a10 = a11}
+  {s : Square l t b r}
+  {p00 p01 p10 p11 : P}
+  {l' : p00 = p01} {t' : p00 = p10} {b' : p01 = p11} {r' : p10 = p11} :
+  Square l' t' b' r' ->
+  SquareOver (fun (_ : A) => P) s
+    (PathOver_const_in l')
+    (PathOver_const_in t')
+    (PathOver_const_in b')
+    (PathOver_const_in r').
+Proof. induction 1. induction s. reflexivity. Defined.
+
+Definition SquareOver_const_out' {A P : Type}
+  {a00 a01 a10 a11 : A}
+  {l : a00 = a01} {t : a00 = a10} {b : a01 = a11} {r : a10 = a11}
+  {s : Square l t b r}
+  {p00 p01 p10 p11 : P}
+  {l' : p00 = p01} {t' : p00 = p10} {b' : p01 = p11} {r' : p10 = p11} :
+  SquareOver (fun (_ : A) => P) s
+    (PathOver_const _ _ _ l')
+    (PathOver_const _ _ _ t')
+    (PathOver_const _ _ _ b')
+    (PathOver_const _ _ _ r') ->
+  Square l' t' b' r'.
+Proof.
+  intros so.
+  assert (l' = PathOver_const_out (p:=l) (PathOver_const_in l')) as ->. 
+  { symmetry.
+    change ((PathOver_const _ _ l)^-1 (PathOver_const _ _ l l') = l'). 
+    apply eissect. }
+  assert (t' = PathOver_const_out (p:=t) (PathOver_const_in t')) as ->. 
+  { symmetry.
+    change ((PathOver_const _ _ t)^-1 (PathOver_const _ _ t t') = t'). 
+    apply eissect. }
+  assert (b' = PathOver_const_out (p:=b) (PathOver_const_in b')) as ->. 
+  { symmetry.
+    change ((PathOver_const _ _ b)^-1 (PathOver_const _ _ b b') = b'). 
+    apply eissect. }
+  assert (r' = PathOver_const_out (p:=r) (PathOver_const_in r')) as ->. 
+  { symmetry.
+    change ((PathOver_const _ _ r)^-1 (PathOver_const _ _ r r') = r'). 
+    apply eissect. }
+  eapply SquareOver_const_out. exact so.
+Defined.
+
+Definition SquareOver_const (A P : Type)
+  {a00 a01 a10 a11 : A}
+  {l : a00 = a01} {t : a00 = a10} {b : a01 = a11} {r : a10 = a11}
+  (s : Square l t b r)  
+  {p00 p01 p10 p11 : P}
+  {l' : p00 = p01} {t' : p00 = p10} {b' : p01 = p11} {r' : p10 = p11} :
+  Square l' t' b' r'
+    <~>
+  SquareOver (fun (_ : A) => P) s 
+    (PathOver_const _ _ _ l')
+    (PathOver_const _ _ _ t')
+    (PathOver_const _ _ _ b')
+    (PathOver_const _ _ _ r').
+Proof.
+  simple refine (BuildEquiv _ _ _ _).
+  - apply SquareOver_const_in.
+  - apply isequiv_biinv. split;
+    exists SquareOver_const_out'.
+    + intros q. induction s,q. simpl. compute. reflexivity.
+    + intros q. simpl in q. Abort.
 
 (** * Circle *)
 
@@ -296,3 +461,30 @@ Proof.
   unfold S1_elim. rewrite S1_ind_beta_loop.
   apply isequiv_transport_pathover.
 Defined.
+
+(** * Torus *)
+Module Export torus.
+Private Inductive T : Type :=
+  | a : T.
+Axiom p : a = a.
+Axiom q : a = a.
+Axiom f : Square p q q p.
+
+Definition T_ind (P : T -> Type)
+  (a' : P a) (p' : PathOver P p a' a') (q' : PathOver P q a' a')
+  (f' : SquareOver P f p' q' q' p')
+  (x : T) : P x
+  := (match x return _ -> _ -> _ -> P x with
+        | a => fun _ _ _ => a'
+      end) p q f.
+
+Definition T_rec (P : Type) (a' : P) (p' q' : a' = a') (f' : Square p' q' q' p') (t : T) : P.
+Proof.
+  simple refine (T_ind (fun _ => P) a' _ _ _ t).
+  - apply PathOver_const. exact p'.
+  - apply PathOver_const. exact q'.
+  - simpl. apply SquareOver_const_in. exact f'.
+Defined.
+
+End torus.
+
